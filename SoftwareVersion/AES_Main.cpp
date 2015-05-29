@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
     };
     BYTE AES_Key_Sched[AES_KEY_SIZE];
 
-    
+
     for (int i = 0; i < AES_KEY_128_NUM_ROUND; i++) {
         AES_Key_Schedule(AES_Key, &AES_Key_Sched, i+1);
 

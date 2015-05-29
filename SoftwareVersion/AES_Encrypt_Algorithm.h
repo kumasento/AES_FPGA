@@ -114,7 +114,7 @@ void AES_MixColumn(BYTE AES_Text[AES_CIPHER_SIZE], BYTE (*AES_Text_Mix)[AES_CIPH
 }
 
 void AES_AddRoundKey(BYTE AES_Text[AES_CIPHER_SIZE], BYTE AES_Key[AES_KEY_SIZE], BYTE (*AES_Text_Add)[AES_CIPHER_SIZE]) {
-    (*AES_Text_Add)[ 0] = AES_Text[ 0] ^ AES_Key[ 0]; 
+    (*AES_Text_Add)[ 0] = AES_Text[ 0] ^ AES_Key[ 0];
     (*AES_Text_Add)[ 1] = AES_Text[ 1] ^ AES_Key[ 1];
     (*AES_Text_Add)[ 2] = AES_Text[ 2] ^ AES_Key[ 2];
     (*AES_Text_Add)[ 3] = AES_Text[ 3] ^ AES_Key[ 3];
@@ -149,8 +149,8 @@ void AES_Test_ByteSub() {
 // For key schedule
 const BYTE RCon_128[AES_KEY_128_NUM_ROUND] = {
     0, // round 0, nothing to do, just padding
-    0x01, 0x02, 0x04, 0x08, 
-    0x10, 0x20, 0x40, 0x80, 
+    0x01, 0x02, 0x04, 0x08,
+    0x10, 0x20, 0x40, 0x80,
     0x1b, 0x36
 };
 
@@ -166,7 +166,7 @@ inline void AES_Key_RotWord(WORD AES_Word_Src, WORD* AES_Word_Dst) {
     *AES_Word_Dst = ((AES_Word_Src&0xFF)<<24) + (AES_Word_Src>>8);
 }
 inline void AES_Key_SubWord(WORD AES_Word_Src, WORD* AES_Word_Dst) {
-    *AES_Word_Dst = 
+    *AES_Word_Dst =
         AES_BYTE_WORD(AES_ByteSub(AES_WORD_BYTE_3(AES_Word_Src)),
                       AES_ByteSub(AES_WORD_BYTE_2(AES_Word_Src)),
                       AES_ByteSub(AES_WORD_BYTE_1(AES_Word_Src)),
@@ -205,15 +205,14 @@ inline void AES_Key_Schedule(BYTE AES_Key[AES_KEY_SIZE], BYTE (*AES_Key_Sched)[A
 inline void AES_One_Round(BYTE AES_Cipher[AES_CIPHER_SIZE],
                           BYTE (*AES_Cipher_ByteSub)[AES_CIPHER_SIZE],
                           BYTE (*AES_Cipher_Shift)[AES_CIPHER_SIZE],
-                          BYTE (*AES_Cipher_Mix)[AES_CIPHER_SIZE], 
-                          BYTE AES_Key[AES_KEY_SIZE], 
+                          BYTE (*AES_Cipher_Mix)[AES_CIPHER_SIZE],
+                          BYTE AES_Key[AES_KEY_SIZE],
                           BYTE (*AES_Key_Result)[AES_KEY_SIZE],
                           BYTE (*AES_Cipher_Result)[AES_CIPHER_SIZE],
                           int round_idx, bool end) {
-    
     if (!end)
         AES_Key_Schedule(AES_Key, AES_Key_Result, round_idx+1);
-    if (round_idx) {
+    if (end) {
         AES_SubBytes(AES_Cipher, AES_Cipher_ByteSub);
         AES_ShiftRow(*AES_Cipher_ByteSub, AES_Cipher_Shift);
         if (end) {
@@ -237,7 +236,7 @@ void AES_Test_Bench(int iter) {
     BYTE AES_Cipher_ByteSub[AES_CIPHER_SIZE];
     BYTE AES_Cipher_Shift[AES_CIPHER_SIZE];
     BYTE AES_Cipher_Mix[AES_CIPHER_SIZE];
-    BYTE AES_Cipher_Result[AES_CIPHER_SIZE];
+    BYTE AES_Cipher_Result[AES_KEY_128_NUM_ROUND][AES_CIPHER_SIZE];
 
     BYTE AES_Key[AES_KEY_SIZE] = {
         0x2B, 0x7E, 0x15, 0x16,
@@ -245,35 +244,31 @@ void AES_Test_Bench(int iter) {
         0xAB, 0xF7, 0x15, 0x88,
         0x09, 0xCF, 0x4F, 0x3C
     };
-    BYTE AES_Key_Result[AES_KEY_SIZE];
+    BYTE AES_Key_Result[AES_KEY_128_NUM_ROUND][AES_KEY_SIZE];
 
     time_t start, end;
     start = clock();
     for (int t = 0; t < iter; t ++) {
-        for (int i = 0; i < AES_KEY_128_NUM_ROUND; i++) {
-            //printf("Round Index %d\n", i+1);
-            AES_One_Round(AES_Cipher, 
-                          &AES_Cipher_ByteSub, 
-                          &AES_Cipher_Shift, 
-                          &AES_Cipher_Mix,
-                          AES_Key,
-                          &AES_Key_Result,
-                          &AES_Cipher_Result, 
-                          i, i == AES_KEY_128_NUM_ROUND-1);
-            //AES_Print_Text(AES_Key_Result, "Key Result");
-            //AES_Print_Text(AES_Cipher_Result, "Cipher Result");
-
-            memcpy(AES_Cipher, AES_Cipher_Result, sizeof(AES_Cipher));
-            memcpy(AES_Key, AES_Key_Result, sizeof(AES_Key));
-        }
+        AES_One_Round(AES_Cipher,            &AES_Cipher_ByteSub, &AES_Cipher_Shift, &AES_Cipher_Mix, AES_Key,            &AES_Key_Result[ 0], &AES_Cipher_Result[ 0],  0, 0);
+        AES_One_Round(AES_Cipher_Result[ 0], &AES_Cipher_ByteSub, &AES_Cipher_Shift, &AES_Cipher_Mix, AES_Key_Result[ 0], &AES_Key_Result[ 1], &AES_Cipher_Result[ 1],  1, 0);
+        AES_One_Round(AES_Cipher_Result[ 1], &AES_Cipher_ByteSub, &AES_Cipher_Shift, &AES_Cipher_Mix, AES_Key_Result[ 1], &AES_Key_Result[ 2], &AES_Cipher_Result[ 2],  2, 0);
+        AES_One_Round(AES_Cipher_Result[ 2], &AES_Cipher_ByteSub, &AES_Cipher_Shift, &AES_Cipher_Mix, AES_Key_Result[ 2], &AES_Key_Result[ 3], &AES_Cipher_Result[ 3],  3, 0);
+        AES_One_Round(AES_Cipher_Result[ 3], &AES_Cipher_ByteSub, &AES_Cipher_Shift, &AES_Cipher_Mix, AES_Key_Result[ 3], &AES_Key_Result[ 4], &AES_Cipher_Result[ 4],  4, 0);
+        AES_One_Round(AES_Cipher_Result[ 4], &AES_Cipher_ByteSub, &AES_Cipher_Shift, &AES_Cipher_Mix, AES_Key_Result[ 4], &AES_Key_Result[ 5], &AES_Cipher_Result[ 5],  5, 0);
+        AES_One_Round(AES_Cipher_Result[ 5], &AES_Cipher_ByteSub, &AES_Cipher_Shift, &AES_Cipher_Mix, AES_Key_Result[ 5], &AES_Key_Result[ 6], &AES_Cipher_Result[ 6],  6, 0);
+        AES_One_Round(AES_Cipher_Result[ 6], &AES_Cipher_ByteSub, &AES_Cipher_Shift, &AES_Cipher_Mix, AES_Key_Result[ 6], &AES_Key_Result[ 7], &AES_Cipher_Result[ 7],  7, 0);
+        AES_One_Round(AES_Cipher_Result[ 7], &AES_Cipher_ByteSub, &AES_Cipher_Shift, &AES_Cipher_Mix, AES_Key_Result[ 7], &AES_Key_Result[ 8], &AES_Cipher_Result[ 8],  8, 0);
+        AES_One_Round(AES_Cipher_Result[ 8], &AES_Cipher_ByteSub, &AES_Cipher_Shift, &AES_Cipher_Mix, AES_Key_Result[ 8], &AES_Key_Result[ 9], &AES_Cipher_Result[ 9],  9, 0);
+        AES_One_Round(AES_Cipher_Result[ 9], &AES_Cipher_ByteSub, &AES_Cipher_Shift, &AES_Cipher_Mix, AES_Key_Result[ 9], &AES_Key_Result[10], &AES_Cipher_Result[10], 10, 1);
+        //AES_One_Round(AES_Cipher, &AES_Cipher_ByteSub, &AES_Cipher_Shift, &AES_Cipher_Mix, AES_Key_Result[10], &AES_Key_Result[11], &AES_Cipher_Result[11], 11, 1);
     }
     end = clock();
     double duration = (double)(end-start)/CLOCKS_PER_SEC;
-    double bandwidth = (iter * AES_KEY_LENGTH)/duration;
+    double bandwidth = (double)(iter * AES_KEY_LENGTH)/duration;
     printf("Time: %.6lfs Bandwidth: %6.6lfb/s %6.6lfB/s %6.6lfMB/s %6.6lfGB/s\n",
-        duration, bandwidth, bandwidth/8, bandwidth/(8*1024), bandwidth/(8*1024*1024));
+        duration, bandwidth, bandwidth/8, bandwidth/(8*1024*1024), bandwidth/((double)8*1024*1024*1024));
 
-    AES_Print_Text(AES_Key_Result, "Key Result");
-    AES_Print_Text(AES_Cipher_Result, "Cipher Result");
+    AES_Print_Text(AES_Key_Result[9], "Key Result");
+    AES_Print_Text(AES_Cipher_Result[10], "Cipher Result");
 }
 
