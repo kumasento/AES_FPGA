@@ -12,7 +12,6 @@
 
 using namespace std;
 
-
 int main(int argc, char *argv[]) {
     int c;
     int r;
@@ -37,6 +36,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    /*
     BYTE AES_Text[AES_CIPHER_SIZE] = {
         0x19, 0x3D, 0xE3, 0xBE,
         0xA0, 0xF4, 0xE2, 0x2B,
@@ -67,6 +67,33 @@ int main(int argc, char *argv[]) {
     AES_AddRoundKey(AES_Text_Mix, AES_Round_Key, &AES_Text_Add);
     AES_Print_Text(AES_Text_Add, "Add Round");
 
+    WORD word = 0x3c4fcf09; // big endian
+    WORD RotWord;
+    WORD SubWord;
+    AES_Key_RotWord(word, &RotWord);
+    printf("0x%08x -> 0x%08x\n", word, RotWord);
+    AES_Key_SubWord(RotWord, &SubWord);
+    printf("0x%08x -> 0x%08x\n", RotWord, SubWord);
+
+    BYTE AES_Key[AES_KEY_SIZE] = {
+        0x2B, 0x7E, 0x15, 0x16,
+        0x28, 0xAE, 0xD2, 0xA6,
+        0xAB, 0xF7, 0x15, 0x88,
+        0x09, 0xCF, 0x4F, 0x3C
+    };
+    BYTE AES_Key_Sched[AES_KEY_SIZE];
+
+    
+    for (int i = 0; i < AES_KEY_128_NUM_ROUND; i++) {
+        AES_Key_Schedule(AES_Key, &AES_Key_Sched, i+1);
+
+        printf("Round %d\n", i+1);
+        AES_Print_Text(AES_Key_Sched, "Scheduled Key");
+        memcpy(AES_Key, AES_Key_Sched, sizeof(AES_Key));
+    }
+    */
+    int iter = atoi(argv[1]);
+    AES_Test_Bench(iter);
     /*
     while (true) {
         if ((r = fread(AES_input_cipher, 1, AES_CIPHER_SIZE, fp)) != AES_CIPHER_SIZE) {
