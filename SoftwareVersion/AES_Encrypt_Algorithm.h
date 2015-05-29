@@ -2,7 +2,7 @@
 #define AES_CIPHER_LENGTH 128
 #define AES_KEY_LENGTH 128
 
-#define BYTE unsigned char
+typedef unsigned short BYTE;// there might be carry bit
 #define BYTE_LENGTH 8
 #define AES_CIPHER_SIZE (AES_CIPHER_LENGTH/BYTE_LENGTH)
 #define AES_KEY_SIZE (AES_KEY_LENGTH/BYTE_LENGTH)
@@ -29,20 +29,101 @@ const BYTE AES_SBox[AES_SBOX_NUM_ENTRY] = {
     0xE1, 0xF8, 0x98, 0x11, 0x69, 0xD9, 0x8E, 0x94, 0x9B, 0x1E, 0x87, 0xE9, 0xCE, 0x55, 0x28, 0xDF,//E
     0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16 //F
 };
-
-#define AES_SBOX_INDEX_HI(b) (((b)&0xF0)>>4)
-#define AES_SBOX_INDEX_LO(b) ((b)&0x0F)
-
-#define AES_SBOX_INDEX(b) \
-    (AES_SBOX_INDEX_LO(b) +\
-    (AES_SBOX_INDEX_HI(b) << AES_SBOX_EDGE_NUM_SHIFT))\
-
 //inline BYTE AES_ByteSub(BYTE A) {
 //    return AES_SBox[AES_SBOX_INDEX(A)];
 //}
 
+void AES_Print_Text(BYTE AES_Text[AES_CIPHER_SIZE], const char *AES_Text_Name) {
+    printf("AES %s Matrix = \n", AES_Text_Name);
+    printf("\t%02x %02x %02x %02x\n", AES_Text[0], AES_Text[4], AES_Text[8],  AES_Text[12]);
+    printf("\t%02x %02x %02x %02x\n", AES_Text[1], AES_Text[5], AES_Text[9],  AES_Text[13]);
+    printf("\t%02x %02x %02x %02x\n", AES_Text[2], AES_Text[6], AES_Text[10], AES_Text[14]);
+    printf("\t%02x %02x %02x %02x\n", AES_Text[3], AES_Text[7], AES_Text[11], AES_Text[15]);
+}
+
 #define AES_ByteSub(b) AES_SBox[(b)]
 
+void AES_SubBytes(BYTE AES_Text[AES_CIPHER_SIZE], BYTE (*AES_Text_Sub)[AES_CIPHER_SIZE]) {
+    (*AES_Text_Sub)[ 0] = AES_ByteSub(AES_Text[ 0]);
+    (*AES_Text_Sub)[ 1] = AES_ByteSub(AES_Text[ 1]);
+    (*AES_Text_Sub)[ 2] = AES_ByteSub(AES_Text[ 2]);
+    (*AES_Text_Sub)[ 3] = AES_ByteSub(AES_Text[ 3]);
+    (*AES_Text_Sub)[ 4] = AES_ByteSub(AES_Text[ 4]);
+    (*AES_Text_Sub)[ 5] = AES_ByteSub(AES_Text[ 5]);
+    (*AES_Text_Sub)[ 6] = AES_ByteSub(AES_Text[ 6]);
+    (*AES_Text_Sub)[ 7] = AES_ByteSub(AES_Text[ 7]);
+    (*AES_Text_Sub)[ 8] = AES_ByteSub(AES_Text[ 8]);
+    (*AES_Text_Sub)[ 9] = AES_ByteSub(AES_Text[ 9]);
+    (*AES_Text_Sub)[10] = AES_ByteSub(AES_Text[10]);
+    (*AES_Text_Sub)[11] = AES_ByteSub(AES_Text[11]);
+    (*AES_Text_Sub)[12] = AES_ByteSub(AES_Text[12]);
+    (*AES_Text_Sub)[13] = AES_ByteSub(AES_Text[13]);
+    (*AES_Text_Sub)[14] = AES_ByteSub(AES_Text[14]);
+    (*AES_Text_Sub)[15] = AES_ByteSub(AES_Text[15]);
+}
+
+
+void AES_ShiftRow(BYTE AES_Text[AES_CIPHER_SIZE], BYTE (*AES_Text_Shift)[AES_CIPHER_SIZE]){
+    (*AES_Text_Shift)[ 0] = AES_Text[ 0]; (*AES_Text_Shift)[ 4] = AES_Text[ 4]; (*AES_Text_Shift)[ 8] = AES_Text[ 8]; (*AES_Text_Shift)[12] = AES_Text[12];
+    (*AES_Text_Shift)[ 1] = AES_Text[ 5]; (*AES_Text_Shift)[ 5] = AES_Text[ 9]; (*AES_Text_Shift)[ 9] = AES_Text[13]; (*AES_Text_Shift)[13] = AES_Text[ 1];
+    (*AES_Text_Shift)[ 2] = AES_Text[10]; (*AES_Text_Shift)[ 6] = AES_Text[14]; (*AES_Text_Shift)[10] = AES_Text[ 2]; (*AES_Text_Shift)[14] = AES_Text[ 6];
+    (*AES_Text_Shift)[ 3] = AES_Text[15]; (*AES_Text_Shift)[ 7] = AES_Text[ 3]; (*AES_Text_Shift)[11] = AES_Text[ 7]; (*AES_Text_Shift)[15] = AES_Text[11];
+}
+
+#define AES_Mod_Bit_8(bit) (((~bit)+1) & 0x1B)
+#define AES_Mod_Bit_9(bit) (((~bit)+1) & 0x36)
+#define AES_Mod(b) \
+    AES_Mod_Bit_9(((b)&0x200)>>9) ^ \
+    AES_Mod_Bit_8(((b)&0x100)>>8) ^ \
+    ((b) & 0xFF)
+
+#define AES_Mix_Row_1(b1, b2, b3, b4) (AES_Mod((b1)<<1) ^ AES_Mod((b2)<<1) ^ (b2) ^ (b3) ^ (b4))
+#define AES_Mix_Row_2(b1, b2, b3, b4) (AES_Mod((b2)<<1) ^ AES_Mod((b3)<<1) ^ (b3) ^ (b1) ^ (b4))
+#define AES_Mix_Row_3(b1, b2, b3, b4) (AES_Mod((b3)<<1) ^ AES_Mod((b4)<<1) ^ (b4) ^ (b1) ^ (b2))
+#define AES_Mix_Row_4(b1, b2, b3, b4) (AES_Mod((b4)<<1) ^ AES_Mod((b1)<<1) ^ (b1) ^ (b2) ^ (b3))
+
+void AES_MixColumn(BYTE AES_Text[AES_CIPHER_SIZE], BYTE (*AES_Text_Mix)[AES_CIPHER_SIZE]) {
+    (*AES_Text_Mix)[ 0] = AES_Mix_Row_1(AES_Text[ 0], AES_Text[ 1], AES_Text[ 2], AES_Text[ 3]);
+    (*AES_Text_Mix)[ 1] = AES_Mix_Row_2(AES_Text[ 0], AES_Text[ 1], AES_Text[ 2], AES_Text[ 3]);
+    (*AES_Text_Mix)[ 2] = AES_Mix_Row_3(AES_Text[ 0], AES_Text[ 1], AES_Text[ 2], AES_Text[ 3]);
+    (*AES_Text_Mix)[ 3] = AES_Mix_Row_4(AES_Text[ 0], AES_Text[ 1], AES_Text[ 2], AES_Text[ 3]);
+
+    (*AES_Text_Mix)[ 4] = AES_Mix_Row_1(AES_Text[ 4], AES_Text[ 5], AES_Text[ 6], AES_Text[ 7]);
+    (*AES_Text_Mix)[ 5] = AES_Mix_Row_2(AES_Text[ 4], AES_Text[ 5], AES_Text[ 6], AES_Text[ 7]);
+    (*AES_Text_Mix)[ 6] = AES_Mix_Row_3(AES_Text[ 4], AES_Text[ 5], AES_Text[ 6], AES_Text[ 7]);
+    (*AES_Text_Mix)[ 7] = AES_Mix_Row_4(AES_Text[ 4], AES_Text[ 5], AES_Text[ 6], AES_Text[ 7]);
+
+    (*AES_Text_Mix)[ 8] = AES_Mix_Row_1(AES_Text[ 8], AES_Text[ 9], AES_Text[10], AES_Text[11]);
+    (*AES_Text_Mix)[ 9] = AES_Mix_Row_2(AES_Text[ 8], AES_Text[ 9], AES_Text[10], AES_Text[11]);
+    (*AES_Text_Mix)[10] = AES_Mix_Row_3(AES_Text[ 8], AES_Text[ 9], AES_Text[10], AES_Text[11]);
+    (*AES_Text_Mix)[11] = AES_Mix_Row_4(AES_Text[ 8], AES_Text[ 9], AES_Text[10], AES_Text[11]);
+
+    (*AES_Text_Mix)[12] = AES_Mix_Row_1(AES_Text[12], AES_Text[13], AES_Text[14], AES_Text[15]);
+    (*AES_Text_Mix)[13] = AES_Mix_Row_2(AES_Text[12], AES_Text[13], AES_Text[14], AES_Text[15]);
+    (*AES_Text_Mix)[14] = AES_Mix_Row_3(AES_Text[12], AES_Text[13], AES_Text[14], AES_Text[15]);
+    (*AES_Text_Mix)[15] = AES_Mix_Row_4(AES_Text[12], AES_Text[13], AES_Text[14], AES_Text[15]);
+}
+
+void AES_AddRoundKey(BYTE AES_Text[AES_CIPHER_SIZE], BYTE AES_Key[AES_KEY_SIZE], BYTE (*AES_Text_Add)[AES_CIPHER_SIZE]) {
+    (*AES_Text_Add)[ 0] = AES_Text[ 0] ^ AES_Key[ 0]; 
+    (*AES_Text_Add)[ 1] = AES_Text[ 1] ^ AES_Key[ 1];
+    (*AES_Text_Add)[ 2] = AES_Text[ 2] ^ AES_Key[ 2];
+    (*AES_Text_Add)[ 3] = AES_Text[ 3] ^ AES_Key[ 3];
+    (*AES_Text_Add)[ 4] = AES_Text[ 4] ^ AES_Key[ 4];
+    (*AES_Text_Add)[ 5] = AES_Text[ 5] ^ AES_Key[ 5];
+    (*AES_Text_Add)[ 6] = AES_Text[ 6] ^ AES_Key[ 6];
+    (*AES_Text_Add)[ 7] = AES_Text[ 7] ^ AES_Key[ 7];
+    (*AES_Text_Add)[ 8] = AES_Text[ 8] ^ AES_Key[ 8];
+    (*AES_Text_Add)[ 9] = AES_Text[ 9] ^ AES_Key[ 9];
+    (*AES_Text_Add)[10] = AES_Text[10] ^ AES_Key[10];
+    (*AES_Text_Add)[11] = AES_Text[11] ^ AES_Key[11];
+    (*AES_Text_Add)[12] = AES_Text[12] ^ AES_Key[12];
+    (*AES_Text_Add)[13] = AES_Text[13] ^ AES_Key[13];
+    (*AES_Text_Add)[14] = AES_Text[14] ^ AES_Key[14];
+    (*AES_Text_Add)[15] = AES_Text[15] ^ AES_Key[15];
+}
+
+/*
 void AES_Test_ByteSub() {
     for (int i = 0; i < AES_SBOX_EDGE_NUM_ENTRY; i++) {
         for (int j = 0; j < AES_SBOX_EDGE_NUM_ENTRY; j++) {
@@ -54,3 +135,5 @@ void AES_Test_ByteSub() {
         }
     }
 }
+*/
+
