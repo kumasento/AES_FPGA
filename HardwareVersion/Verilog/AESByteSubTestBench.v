@@ -10,7 +10,7 @@ module AESByteSubTestBench;
 	always #5 clk = ~clk;
 	always #10 addr = addr + 1;
 
-	AESByteSubRow bytesubrow(.clk(clk), .en(en), .addr(addr), .data(data));
+	AESByteSubColumn bytesubcol(.clk(clk), .en(en), .addr(addr), .data(data));
 
 	initial 
 		$monitor("at time %t, addr=%h, data=%h", $time, addr, data);

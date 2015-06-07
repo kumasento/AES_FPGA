@@ -82,7 +82,6 @@ void AES_ShiftRow(BYTE AES_Text[AES_CIPHER_SIZE], BYTE (*AES_Text_Shift)[AES_CIP
 #define AES_Mod_Bit_8(bit) (((~bit)+1) & 0x1B)
 #define AES_Mod_Bit_9(bit) (((~bit)+1) & 0x36)
 #define AES_Mod(b) \
-    AES_Mod_Bit_9(((b)&0x200)>>9) ^ \
     AES_Mod_Bit_8(((b)&0x100)>>8) ^ \
     ((b) & 0xFF)
 
@@ -212,7 +211,7 @@ inline void AES_One_Round(BYTE AES_Cipher[AES_CIPHER_SIZE],
                           int round_idx, bool end) {
     if (!end)
         AES_Key_Schedule(AES_Key, AES_Key_Result, round_idx+1);
-    if (end) {
+    if (round_idx > 0) {
         AES_SubBytes(AES_Cipher, AES_Cipher_ByteSub);
         AES_ShiftRow(*AES_Cipher_ByteSub, AES_Cipher_Shift);
         if (end) {
@@ -224,6 +223,14 @@ inline void AES_One_Round(BYTE AES_Cipher[AES_CIPHER_SIZE],
     } else {
         AES_AddRoundKey(AES_Cipher, AES_Key, AES_Cipher_Result);
     }
+    printf("round: %d\n", round_idx);
+    AES_Print_Text(AES_Cipher, "cipher");
+    AES_Print_Text(AES_Key, "key");
+    AES_Print_Text(*AES_Cipher_ByteSub, "byte sub");
+    AES_Print_Text(*AES_Cipher_Shift, "shift");
+    AES_Print_Text(*AES_Cipher_Mix, "mix");
+    AES_Print_Text(*AES_Key_Result, "key result");
+    AES_Print_Text(*AES_Cipher_Result, "cipher result");
 }
 
 void AES_Test_Bench(int iter) {
@@ -237,6 +244,10 @@ void AES_Test_Bench(int iter) {
     BYTE AES_Cipher_Shift[AES_CIPHER_SIZE];
     BYTE AES_Cipher_Mix[AES_CIPHER_SIZE];
     BYTE AES_Cipher_Result[AES_KEY_128_NUM_ROUND][AES_CIPHER_SIZE];
+
+    memset(AES_Cipher_ByteSub, 0, sizeof(AES_Cipher_ByteSub));
+    memset(AES_Cipher_Shift, 0, sizeof(AES_Cipher_Shift));
+    memset(AES_Cipher_Mix, 0, sizeof(AES_Cipher_Mix));
 
     BYTE AES_Key[AES_KEY_SIZE] = {
         0x2B, 0x7E, 0x15, 0x16,
